@@ -1,6 +1,6 @@
 # Flux (PyTorch + pygame)
 
-<img src="ressources/logo.png" alt="Flux logo" width="180">
+<img src="ressources/logo.png" alt="Flux logo" width="270">
 
 Flux is a professional starter project for an **interactive 2D particle simulation** with a game-ready architecture.
 
@@ -9,7 +9,7 @@ The simulation is computed with **PyTorch** (GPU when available, CPU fallback) a
 ## Features
 
 - Square playground with reflecting boundary conditions.
-- Real-time ODE integration (`x'' = F - gamma x'`) with adjustable friction.
+- Real-time ODE integration (`x'' = F - gamma x'`) with adjustable friction, using velocity Verlet / leapfrog.
 - Time-scale slider to accelerate/slow down simulation steps.
 - Pairwise self-interaction:
   - attractive long-range force,
