@@ -15,6 +15,9 @@ from .toolbox import (
 
 
 class ParticleSimulation:
+    history_len = 10
+    history_stride = 10
+
     def __init__(
         self,
         particle_count: int,
@@ -32,6 +35,8 @@ class ParticleSimulation:
 
         self.positions = random_positions(particle_count, self.box_size, self.device, self.dtype)
         self.velocities = random_velocities(particle_count, speed_scale=25.0, device=self.device, dtype=self.dtype)
+        self.history = self.positions.unsqueeze(0).repeat(self.history_len, 1, 1)
+        self._history_counter = 0
 
     @property
     def particle_count(self) -> int:
@@ -50,6 +55,7 @@ class ParticleSimulation:
             keep = torch.randperm(current, device=self.device)[:target_count]
             self.positions = self.positions[keep]
             self.velocities = self.velocities[keep]
+            self.history = self.history[:, keep]
             return
 
         add_count = target_count - current
@@ -57,6 +63,8 @@ class ParticleSimulation:
         new_vel = random_velocities(add_count, speed_scale=20.0, device=self.device, dtype=self.dtype)
         self.positions = torch.cat([self.positions, new_pos], dim=0)
         self.velocities = torch.cat([self.velocities, new_vel], dim=0)
+        new_history = new_pos.unsqueeze(0).repeat(self.history_len, 1, 1)
+        self.history = torch.cat([self.history, new_history], dim=1)
 
     def emit_particles(self, count: int, min_corner: torch.Tensor, max_corner: torch.Tensor) -> None:
         count = int(max(0, count))
@@ -66,6 +74,8 @@ class ParticleSimulation:
         new_vel = random_velocities(count, speed_scale=18.0, device=self.device, dtype=self.dtype)
         self.positions = torch.cat([self.positions, new_pos], dim=0)
         self.velocities = torch.cat([self.velocities, new_vel], dim=0)
+        new_history = new_pos.unsqueeze(0).repeat(self.history_len, 1, 1)
+        self.history = torch.cat([self.history, new_history], dim=1)
 
     def absorb_particles(self, min_corner: torch.Tensor, max_corner: torch.Tensor) -> int:
         if self.particle_count <= 0:
@@ -79,6 +89,7 @@ class ParticleSimulation:
         keep = ~inside
         self.positions = self.positions[keep]
         self.velocities = self.velocities[keep]
+        self.history = self.history[:, keep]
         return absorbed
 
     def step(self, params: DynamicsParams, dt: float) -> None:
@@ -106,6 +117,13 @@ class ParticleSimulation:
         external_force = compute_external_force(self.positions, self.centers, self.center_signs, params)
         acceleration = pair_force + external_force - params.friction * v_half
         self.velocities = v_half + 0.5 * dt * acceleration
+        self._history_counter += 1
+        if self._history_counter >= self.history_stride:
+            self._history_counter = 0
+            self.history = torch.cat([self.history[1:], self.positions.unsqueeze(0)], dim=0)
 
     def positions_cpu(self) -> torch.Tensor:
         return self.positions.detach().to(device="cpu")
+
+    def history_cpu(self) -> torch.Tensor:
+        return self.history.detach().to(device="cpu")

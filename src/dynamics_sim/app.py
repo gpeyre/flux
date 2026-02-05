@@ -84,6 +84,8 @@ def draw_scene(
     font: pygame.font.Font,
     small_font: pygame.font.Font,
     device_label: str,
+    show_trails: bool,
+    trails_toggle_rect: pygame.Rect,
 ) -> None:
     screen.fill((19, 23, 31))
     play_rect = pygame.Rect(origin[0], origin[1], CONFIG.playground_size, CONFIG.playground_size)
@@ -104,6 +106,22 @@ def draw_scene(
         pygame.draw.circle(screen, color, (sx, sy), bandwidth, width=1)
         pygame.draw.circle(screen, color, (sx, sy), 8)
 
+    if show_trails:
+        trails_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+        history = sim.history_cpu().numpy()
+        history_len = history.shape[0]
+        if history_len > 1:
+            alpha_step = 255 / (history_len - 1)
+            for particle_idx in range(history.shape[1]):
+                for idx in range(1, history_len):
+                    x0, y0 = history[idx - 1, particle_idx]
+                    x1, y1 = history[idx, particle_idx]
+                    p0 = world_to_screen((float(x0), float(y0)), origin)
+                    p1 = world_to_screen((float(x1), float(y1)), origin)
+                    alpha = int(alpha_step * idx)
+                    pygame.draw.line(trails_surface, (232, 241, 255, alpha), p0, p1, width=1)
+            screen.blit(trails_surface, (0, 0))
+
     particles = sim.positions_cpu().numpy()
     for x, y in particles:
         px, py = world_to_screen((float(x), float(y)), origin)
@@ -118,6 +136,13 @@ def draw_scene(
 
     for slider in ui.__dict__.values():
         slider.draw(screen, small_font)
+
+    toggle_color = (76, 170, 120) if show_trails else (86, 96, 110)
+    pygame.draw.rect(screen, toggle_color, trails_toggle_rect, border_radius=6)
+    pygame.draw.rect(screen, (28, 34, 45), trails_toggle_rect, width=1, border_radius=6)
+    toggle_label = small_font.render("Trails: On" if show_trails else "Trails: Off", True, (244, 246, 251))
+    label_pos = toggle_label.get_rect(center=trails_toggle_rect.center)
+    screen.blit(toggle_label, label_pos)
 
     info_lines = [
         f"Device: {device_label}",
@@ -183,11 +208,13 @@ def main() -> None:
     )
     emitter_rect = emitter_world.move(origin[0], origin[1])
     target_rect = target_world.move(origin[0], origin[1])
+    trails_toggle_rect = pygame.Rect(panel_rect.left + 16, panel_rect.top + 68, 140, 26)
 
     score = 0
     emitter_rate = 28.0  # particles per second
 
     active_center: int | None = None
+    show_trails = True
     running = True
 
     while running:
@@ -214,6 +241,8 @@ def main() -> None:
                     nearest = int(torch.argmin(dists).item())
                     if dists[nearest].item() <= max(ui.external_bandwidth.value * 0.2, 18.0):
                         active_center = nearest
+                elif trails_toggle_rect.collidepoint(event.pos):
+                    show_trails = not show_trails
 
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 active_center = None
@@ -265,6 +294,8 @@ def main() -> None:
             font,
             small_font,
             device_label,
+            show_trails,
+            trails_toggle_rect,
         )
         pygame.display.flip()
 
