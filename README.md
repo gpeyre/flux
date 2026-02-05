@@ -1,6 +1,6 @@
 # Flux (PyTorch + pygame)
 
-![Flux logo](ressources/logo.png)
+<img src="ressources/logo.png" alt="Flux logo" width="180">
 
 Flux is a professional starter project for an **interactive 2D particle simulation** with a game-ready architecture.
 
