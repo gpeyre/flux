@@ -88,18 +88,24 @@ class ParticleSimulation:
         pair_force = compute_pairwise_force(self.positions, params)
         external_force = compute_external_force(self.positions, self.centers, self.center_signs, params)
 
+        # Velocity Verlet / leapfrog (kick-drift-kick).
         acceleration = pair_force + external_force - params.friction * self.velocities
-        self.velocities = self.velocities + dt * acceleration
-        self.positions = self.positions + dt * self.velocities
+        v_half = self.velocities + 0.5 * dt * acceleration
+        self.positions = self.positions + dt * v_half
 
         # Reflective boundaries.
         below_zero = self.positions < 0.0
         self.positions = torch.where(below_zero, -self.positions, self.positions)
-        self.velocities = torch.where(below_zero, torch.abs(self.velocities), self.velocities)
+        v_half = torch.where(below_zero, torch.abs(v_half), v_half)
 
         above_box = self.positions > self.box_size
         self.positions = torch.where(above_box, 2.0 * self.box_size - self.positions, self.positions)
-        self.velocities = torch.where(above_box, -torch.abs(self.velocities), self.velocities)
+        v_half = torch.where(above_box, -torch.abs(v_half), v_half)
+
+        pair_force = compute_pairwise_force(self.positions, params)
+        external_force = compute_external_force(self.positions, self.centers, self.center_signs, params)
+        acceleration = pair_force + external_force - params.friction * v_half
+        self.velocities = v_half + 0.5 * dt * acceleration
 
     def positions_cpu(self) -> torch.Tensor:
         return self.positions.detach().to(device="cpu")
