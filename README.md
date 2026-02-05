@@ -1,5 +1,7 @@
 # Flux (PyTorch + pygame)
 
+![Flux logo](ressources/logo.png)
+
 Flux is a professional starter project for an **interactive 2D particle simulation** with a game-ready architecture.
 
 The simulation is computed with **PyTorch** (GPU when available, CPU fallback) and rendered with **pygame**.
