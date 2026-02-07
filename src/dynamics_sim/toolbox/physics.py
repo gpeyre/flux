@@ -8,30 +8,43 @@ import torch
 @dataclass
 class DynamicsParams:
     friction: float
-    attract_strength: float
-    attract_range: float
-    repel_strength: float
-    repel_range: float
+    a_a: float
+    s_a: float
+    a_r: float
+    s_r: float
     external_strength: float
     external_bandwidth: float
+    unity_normalization: bool = True
+    attention_normalization: bool = False
 
 
 def compute_pairwise_force(positions: torch.Tensor, params: DynamicsParams) -> torch.Tensor:
-    """Compute attraction/repulsion forces for all particle pairs."""
+    """Compute pairwise forces with a 2-head Gaussian mixture and 1/n normalization."""
     delta = positions[:, None, :] - positions[None, :, :]
     dist2 = (delta * delta).sum(dim=-1) + 1e-6
-    dist = torch.sqrt(dist2)
-    inv_dist = torch.rsqrt(dist2)
-    direction = delta * inv_dist.unsqueeze(-1)
 
-    attract_kernel = params.attract_strength * torch.exp(-dist / max(params.attract_range, 1e-3))
-    repel_kernel = params.repel_strength * torch.exp(-dist2 / max(params.repel_range**2, 1e-3))
-    interaction = repel_kernel - attract_kernel
+    # v_1 = +a_r (repulsive), v_2 = -a_a (attractive)
+    g_r = torch.exp(-dist2 / max(params.s_r**2, 1e-3))
+    g_a = torch.exp(-dist2 / max(params.s_a**2, 1e-3))
 
-    eye = torch.eye(positions.size(0), device=positions.device, dtype=positions.dtype)
-    interaction = interaction * (1.0 - eye)
+    if params.unity_normalization:
+        direction = delta * torch.rsqrt(dist2).unsqueeze(-1)
+        pair_term = direction
+    else:
+        pair_term = delta
 
-    return (interaction.unsqueeze(-1) * direction).sum(dim=1)
+    if params.attention_normalization:
+        # Per-head attention normalization over neighbors l for each i.
+        denom_r = g_r.sum(dim=1, keepdim=True).clamp_min(1e-8)
+        denom_a = g_a.sum(dim=1, keepdim=True).clamp_min(1e-8)
+        weight_r = params.a_r * (g_r / denom_r)
+        weight_a = -params.a_a * (g_a / denom_a)
+        interaction = weight_r + weight_a
+        return (interaction.unsqueeze(-1) * pair_term).sum(dim=1)
+
+    interaction = params.a_r * g_r - params.a_a * g_a
+    n = max(positions.size(0), 1)
+    return (interaction.unsqueeze(-1) * pair_term).sum(dim=1) / float(n)
 
 
 def compute_external_force(

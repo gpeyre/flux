@@ -1,0 +1,102 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{bm}
+
+\title{Particle System Model}
+\author{Flux}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{State and Dynamics}
+Let $n$ particles evolve in $\mathbb{R}^2$ with positions
+\[
+X(t) = \big(x_1(t),\dots,x_n(t)\big), \qquad x_i(t)\in\mathbb{R}^2.
+\]
+The motion with friction is
+\[
+\ddot{x}_i + \alpha \dot{x}_i = -f_E(x_i) - f_I(X,x_i), \qquad i=1,\dots,n,
+\]
+where $\alpha\ge 0$ is the friction coefficient.
+
+\section{External Force (Context-Free)}
+The external term depends only on the local position:
+\[
+f_E(x) : \mathbb{R}^2 \to \mathbb{R}^2.
+\]
+In this application, $f_E$ is built from user-controlled radial centers and does not depend on the current full particle configuration $X$.
+
+\section{Internal Force (In-Context)}
+Internal interactions depend on the whole configuration $X$:
+\[
+f_I(X,x_i)
+=
+\frac{1}{n}\sum_{k=1}^{K}\sum_{j=1}^{n}
+v_k\, g_{s_k}(x_i-x_j)\,(x_i-x_j).
+\]
+The Gaussian head kernel is
+\[
+g_s(r)=\exp\!\left(-\frac{\|r\|^2}{s^2}\right).
+\]
+The self-interaction terms ($j=i$) are set to zero in implementation.
+
+\subsection*{Unity On/Off Vector Term}
+Define
+\[
+w_{ij}=
+\begin{cases}
+\dfrac{x_i-x_j}{\|x_i-x_j\|}, & \text{Unity On},\\[0.75em]
+x_i-x_j, & \text{Unity Off}.
+\end{cases}
+\]
+
+\section{Two-Head Case ($K=2$)}
+With two heads:
+\[
+v_1>0 \quad\text{(repulsive)}, \qquad v_2<0 \quad\text{(attractive)}.
+\]
+Using UI amplitudes
+\[
+a_R = |v_1|,\qquad a_A = |v_2|,
+\]
+we write
+\[
+v_1 = +a_R,\qquad v_2 = -a_A.
+\]
+With radii $s_R$ (repulsion) and $s_A$ (attraction), the scalar radial profile is
+\[
+\phi(r)=a_R \exp\!\left(-\frac{r^2}{s_R^2}\right)-a_A \exp\!\left(-\frac{r^2}{s_A^2}\right),
+\]
+and
+\[
+f_I(X,x_i)
+=
+\frac{1}{n}\sum_{j=1}^{n}
+\phi\!\big(\|x_i-x_j\|\big)\,(x_i-x_j),
+\]
+with the $j=i$ contribution removed.
+
+\subsection*{Attention On/Off}
+With the $w_{ij}$ notation above, two internal-force modes are used.
+
+\paragraph{Attention Off}
+\[
+f_i
+=
+\frac{1}{n}\sum_{k=1}^{K}\sum_{j=1}^{n}
+v_k\, g_{s_k}(x_i-x_j)\,w_{ij}.
+\]
+
+\paragraph{Attention On}
+\[
+f_i
+=
+\sum_{k=1}^{K}\sum_{j=1}^{n}
+v_k\,
+\frac{g_{s_k}(x_i-x_j)}{\sum_{\ell=1}^{n} g_{s_k}(x_i-x_\ell)}
+\;w_{ij}.
+\]
+
+\end{document}

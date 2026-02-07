@@ -6,10 +6,10 @@ from dynamics_sim.toolbox.physics import DynamicsParams, compute_external_force,
 def test_pairwise_force_shape_and_conservation_like_symmetry() -> None:
     params = DynamicsParams(
         friction=0.2,
-        attract_strength=10.0,
-        attract_range=100.0,
-        repel_strength=20.0,
-        repel_range=30.0,
+        a_a=10.0,
+        s_a=100.0,
+        a_r=20.0,
+        s_r=30.0,
         external_strength=50.0,
         external_bandwidth=80.0,
     )
@@ -22,10 +22,10 @@ def test_pairwise_force_shape_and_conservation_like_symmetry() -> None:
 def test_external_force_is_zero_at_center_when_single_particle() -> None:
     params = DynamicsParams(
         friction=0.0,
-        attract_strength=0.0,
-        attract_range=100.0,
-        repel_strength=0.0,
-        repel_range=10.0,
+        a_a=0.0,
+        s_a=100.0,
+        a_r=0.0,
+        s_r=10.0,
         external_strength=10.0,
         external_bandwidth=40.0,
     )
@@ -39,10 +39,10 @@ def test_external_force_is_zero_at_center_when_single_particle() -> None:
 def test_external_force_points_toward_attractive_center() -> None:
     params = DynamicsParams(
         friction=0.0,
-        attract_strength=0.0,
-        attract_range=100.0,
-        repel_strength=0.0,
-        repel_range=10.0,
+        a_a=0.0,
+        s_a=100.0,
+        a_r=0.0,
+        s_r=10.0,
         external_strength=20.0,
         external_bandwidth=80.0,
     )
