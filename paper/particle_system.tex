@@ -29,27 +29,49 @@ f_E(x) : \mathbb{R}^2 \to \mathbb{R}^2.
 In this application, $f_E$ is built from user-controlled radial centers and does not depend on the current full particle configuration $X$.
 
 \section{Internal Force (In-Context)}
-Internal interactions depend on the whole configuration $X$:
-\[
-f_I(X,x_i)
-=
-\frac{1}{n}\sum_{k=1}^{K}\sum_{j=1}^{n}
-v_k\, g_{s_k}(x_i-x_j)\,(x_i-x_j).
-\]
-The Gaussian head kernel is
+Internal interactions depend on the whole configuration $X$. We define:
+
+\paragraph{Gaussian head kernel}
 \[
 g_s(r)=\exp\!\left(-\frac{\|r\|^2}{s^2}\right).
 \]
-The self-interaction terms ($j=i$) are set to zero in implementation.
 
-\subsection*{Unity On/Off Vector Term}
-Define
+\paragraph{Unity On/Off vector term}
 \[
 w_{ij}=
 \begin{cases}
 \dfrac{x_i-x_j}{\|x_i-x_j\|}, & \text{Unity On},\\[0.75em]
 x_i-x_j, & \text{Unity Off}.
 \end{cases}
+\]
+with the convention that the self-term $j=i$ contributes zero in implementation.
+
+\paragraph{Interaction map}
+For any query position $x\in\mathbb{R}^2$ and configuration
+$X=(x_1,\dots,x_n)$, define $w(x,x_j)$ by the same Unity rule above, and
+\[
+f(x,X):\mathbb{R}^2\times(\mathbb{R}^2)^n\to\mathbb{R}^2.
+\]
+
+\textbf{Attention Off}
+\[
+f(x,X)=
+\frac{1}{n}\sum_{k=1}^{K}\sum_{j=1}^{n}
+v_k\, g_{s_k}(x-x_j)\,w(x,x_j).
+\]
+
+\textbf{Attention On}
+\[
+f(x,X)=
+\sum_{k=1}^{K}\sum_{j=1}^{n}
+v_k\,
+\frac{g_{s_k}(x-x_j)}{\sum_{\ell=1}^{n} g_{s_k}(x-x_\ell)}
+\;w(x,x_j).
+\]
+
+The model equation uses
+\[
+f_I(X,x_i)=f(x_i,X).
 \]
 
 \section{Two-Head Case ($K=2$)}
@@ -69,34 +91,6 @@ With radii $s_R$ (repulsion) and $s_A$ (attraction), the scalar radial profile i
 \[
 \phi(r)=a_R \exp\!\left(-\frac{r^2}{s_R^2}\right)-a_A \exp\!\left(-\frac{r^2}{s_A^2}\right),
 \]
-and
-\[
-f_I(X,x_i)
-=
-\frac{1}{n}\sum_{j=1}^{n}
-\phi\!\big(\|x_i-x_j\|\big)\,(x_i-x_j),
-\]
-with the $j=i$ contribution removed.
-
-\subsection*{Attention On/Off}
-With the $w_{ij}$ notation above, two internal-force modes are used.
-
-\paragraph{Attention Off}
-\[
-f_i
-=
-\frac{1}{n}\sum_{k=1}^{K}\sum_{j=1}^{n}
-v_k\, g_{s_k}(x_i-x_j)\,w_{ij}.
-\]
-
-\paragraph{Attention On}
-\[
-f_i
-=
-\sum_{k=1}^{K}\sum_{j=1}^{n}
-v_k\,
-\frac{g_{s_k}(x_i-x_j)}{\sum_{\ell=1}^{n} g_{s_k}(x_i-x_\ell)}
-\;w_{ij}.
-\]
+which is equivalent to the two-head expansion of $f(x,X)$ above.
 
 \end{document}
